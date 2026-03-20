@@ -8,10 +8,6 @@ INTRODUCTION TO GEMINI(introduction.py)
 
 - Understand and generate text, images , audio , video and code
 
-installation
-
-- pip install -q -U google-genai
-
 basic workflow
 
 -take input prompt
