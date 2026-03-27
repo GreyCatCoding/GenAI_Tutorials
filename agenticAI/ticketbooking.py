@@ -4,21 +4,25 @@ from pydantic import BaseModel#structured output
 from typing import Optional# for optional fields in the structured output
 import json# for parsing json data 
 
-# a def is used when we want to define a function that perfoerms a specific task
-# a class is used when we want to create a blueprint for an object that can have attributes and methods
-
 #Sequence of steps to achieve the goal
 # run -> plan steps -> execute steps -> completed steps
 
 # RESPONSE STRUCTURES 
 class PlanStep(BaseModel):# defining a structured schema for the steps in the plan
     step_name: str
+
+class TicketPrice(BaseModel): 
+    amount: float
+    currency: str = "USD"
+    source: Optional[str] = None  
+
 class Executetask(BaseModel):# defining a structured schema for the execution of a task
     task_name: str
     action_taken: str
     results_summary: str
     simulated_data: Optional[str] = None # an optional field to represent any simulated data if required, as not all tasks may require simulation
-
+    price: Optional[TicketPrice] = None # an optional field to represent the price of the ticket if it is relevant to the task, as not all tasks may involve pricing  
+#------------------------------------------------------------------------------------------
 # USE OF LLM MODEL
 def CallModel(prompt,schema):# defining a function to call the model with a given prompt and schema
     response = chat.send_message(prompt, config=types.GenerateContentConfig(# defining the configuration for the content generation
@@ -28,8 +32,17 @@ def CallModel(prompt,schema):# defining a function to call the model with a give
     
     ) ) 
     return response.text
-    
 #--------------------------------------------------------------------------------------------------------
+
+#ADDITION OF PRICE TO FINAL OUTPUT 
+
+def add_price(results_summary: str, amount: float, currency: str = "USD") -> dict:
+    # If your agent response contains structured output, map in new key
+    return {
+        "results_summary": results_summary,
+        "price": {"amount": amount, "currency": currency}
+    }
+
 
 # CREATE PLAN/AGENT # MAIN
 def run_agent(): # defining the main function to run the agent
@@ -43,7 +56,9 @@ def execute_step(step): # defining a function to execute a given step
     actionprompt = f"execute the following step: {step}. Describe what you did and summarise the results.Simulate the task if required" # defining the prompt to ask the agent to execute the given step
     result = CallModel(actionprompt, Executetask) # calling the CallModel function with the actionprompt and the schema for the response
     result = json.loads(result) # parsing the response from the model as JSON data to a dictionary as we cannot extract data from a string response
-
+    enriched = add_price(result["results_summary"], 120.0, "SGD")
+    print(enriched)
+    
     print(f"Task Name: {result['task_name']}") # printing the task name from the result
     print(f"Action Taken: {result['action_taken']}") # printing the action taken
     print(f"Results Summary: {result['results_summary']}") # printing the results summary
